@@ -4,6 +4,7 @@ import {
   RemoteAttachmentCodec,
   AttachmentCodec,
 } from "@xmtp/content-type-remote-attachment";
+import axios from "axios";
 import { MessageInput } from "./MessageInput";
 import MessageItem from "./MessageItem";
 import { ContentTypeReaction } from "@xmtp/content-type-reaction";
@@ -55,7 +56,7 @@ export const MessageContainer = ({
 
   const handleReaction = async (message, emoji) => {
     const existingReaction = Array.from(message.reactions || []).find(
-      (r) => r === emoji
+      (r) => r === emoji,
     );
     const action = existingReaction ? "removed" : "added";
 
@@ -102,7 +103,7 @@ export const MessageContainer = ({
     }
 
     const doesMessageExist = prevMessages.some(
-      (existingMessage) => existingMessage.id === newMessage.id
+      (existingMessage) => existingMessage.id === newMessage.id,
     );
 
     if (!doesMessageExist) {
@@ -164,7 +165,7 @@ export const MessageContainer = ({
               {},
               {
                 contentType: ContentTypeReadReceipt,
-              }
+              },
             );
             setLastReadMessageId(lastUnreadMessage.id);
           } catch (error) {
@@ -180,13 +181,16 @@ export const MessageContainer = ({
   const handleSendMessage = async (
     newMessage,
     image,
-    replyingToMessage = null
+    replyingToMessage = null,
   ) => {
     if (!newMessage.trim() && !image) {
       alert("empty message");
       return;
     }
-    if (image) {
+    console.log(newMessage);
+    if (newMessage === "cb") {
+      await sendPreUploadedImage();
+    } else if (image) {
       await handleLargeFile(image);
     } else {
       if (conversation && conversation.peerAddress) {
@@ -236,11 +240,13 @@ export const MessageContainer = ({
         mimeType: image?.type,
         data: new Uint8Array(data),
       };
+      console.log(attachment);
 
       const encryptedEncoded = await RemoteAttachmentCodec.encodeEncrypted(
         attachment,
-        new AttachmentCodec()
+        new AttachmentCodec(),
       );
+      console.log(encryptedEncoded);
 
       class Upload {
         constructor(name, data) {
@@ -266,7 +272,7 @@ export const MessageContainer = ({
 
       const cid = await web3Storage.put([upload]);
       const url = `https://${cid}.ipfs.w3s.link/` + attachment.filename;
-
+      console.log(url);
       setLoadingText(url);
       const remoteAttachment = {
         url: url,
@@ -278,6 +284,20 @@ export const MessageContainer = ({
         filename: attachment.filename,
         contentLength: attachment.data.byteLength,
       };
+      localStorage.setItem(
+        "remoteAttachment",
+        JSON.stringify({
+          ...remoteAttachment,
+          salt: Array.from(remoteAttachment.salt).join(","),
+          nonce: Array.from(remoteAttachment.nonce).join(","),
+          secret: Array.from(remoteAttachment.secret).join(","),
+        }),
+      );
+      console.log(
+        "remoteAttachment2",
+        remoteAttachment,
+        localStorage.getItem("remoteAttachment"),
+      );
 
       setLoadingText("Sending...");
       await conversation.send(remoteAttachment, {
@@ -289,6 +309,63 @@ export const MessageContainer = ({
       setIsLoadingUpload(false);
     }
   };
+  async function sendPreUploadedImage() {
+    try {
+      const remoteAttachmentString = localStorage.getItem("remoteAttachment");
+      console.log(remoteAttachmentString);
+
+      if (!remoteAttachmentString) {
+        console.error("No saved remote attachment found");
+        return;
+      }
+
+      let remoteAttachment = JSON.parse(remoteAttachmentString);
+
+      if (remoteAttachment.salt) {
+        remoteAttachment.salt = new Uint8Array(
+          remoteAttachment.salt.split(",").map(Number),
+        );
+      }
+      if (remoteAttachment.nonce) {
+        remoteAttachment.nonce = new Uint8Array(
+          remoteAttachment.nonce.split(",").map(Number),
+        );
+      }
+      if (remoteAttachment.secret) {
+        remoteAttachment.secret = new Uint8Array(
+          remoteAttachment.secret.split(",").map(Number),
+        );
+      }
+      console.log("remoteAttachment3", remoteAttachment);
+
+      // Assuming conversation and ContentTypeRemoteAttachment are provided correctly
+      await conversation.send(remoteAttachment, {
+        contentType: ContentTypeRemoteAttachment,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  const getImageSrcFromMessage = async (message, client) => {
+    try {
+      console.log(message.content);
+      const attachment = await RemoteAttachmentCodec.load(
+        message.content,
+        client,
+      );
+      if (attachment && attachment.data) {
+        const objectURL = URL.createObjectURL(
+          new Blob([Buffer.from(attachment.data)], {
+            type: attachment.mimeType,
+          }),
+        );
+        return objectURL;
+      }
+    } catch (error) {
+      console.error("Failed to load and render attachment:", error);
+    }
+    return null;
+  };
   const handleFileUpload = (event) => {
     const file = event?.target?.files[0];
     setImage(file);
@@ -298,26 +375,6 @@ export const MessageContainer = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const getImageSrcFromMessage = async (message, client) => {
-    try {
-      const attachment = await RemoteAttachmentCodec.load(
-        message.content,
-        client
-      );
-      if (attachment && attachment.data) {
-        const objectURL = URL.createObjectURL(
-          new Blob([Buffer.from(attachment.data)], {
-            type: attachment.mimeType,
-          })
-        );
-        return objectURL;
-      }
-    } catch (error) {
-      console.error("Failed to load and render attachment:", error);
-    }
-    return null;
-  };
-
   useEffect(() => {
     const fetchImageSources = async () => {
       let newImageSources = {};
@@ -326,7 +383,7 @@ export const MessageContainer = ({
         if (message.contentType.sameAs(ContentTypeRemoteAttachment)) {
           newImageSources[message.id] = await getImageSrcFromMessage(
             message,
-            client
+            client,
           );
         }
       }
@@ -346,7 +403,7 @@ export const MessageContainer = ({
           <ul style={styles.messagesList}>
             {messages.slice().map((message) => {
               let originalMessage = messages.find(
-                (m) => m.id === message.content.reference
+                (m) => m.id === message.content.reference,
               );
               return (
                 <MessageItem
