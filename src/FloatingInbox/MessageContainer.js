@@ -4,7 +4,7 @@ import {
   RemoteAttachmentCodec,
   AttachmentCodec,
 } from "@xmtp/content-type-remote-attachment";
-import axios from "axios";
+
 import { MessageInput } from "./MessageInput";
 import MessageItem from "./MessageItem";
 import { ContentTypeReaction } from "@xmtp/content-type-reaction";

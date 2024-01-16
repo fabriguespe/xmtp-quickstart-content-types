@@ -18,6 +18,7 @@ export function FloatingInbox({
   onLogout,
   isContained = false,
   isConsent = false,
+  initialAddress,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnNetwork, setIsOnNetwork] = useState(false);
@@ -262,6 +263,10 @@ export function FloatingInbox({
     xmtp.registerCodec(new ReactionCodec());
     xmtp.registerCodec(new ReadReceiptCodec());
 
+    if (initialAddress) {
+      const conv = await xmtp.conversations.newConversation(initialAddress);
+      setSelectedConversation(conv);
+    }
     setClient(xmtp);
     setIsOnNetwork(!!xmtp.address);
     if (isConsent) {
@@ -279,16 +284,14 @@ export function FloatingInbox({
             "FloatingInbox " +
             (isOpen ? "spin-clockwise" : "spin-counter-clockwise")
           }
-          style={styles.FloatingLogo}
-        >
+          style={styles.FloatingLogo}>
           💬
         </div>
       )}
       {isOpen && (
         <div
           style={styles.uContainer}
-          className={" " + (isOnNetwork ? "expanded" : "")}
-        >
+          className={" " + (isOnNetwork ? "expanded" : "")}>
           {isConnected && (
             <button style={styles.logoutBtn} onClick={handleLogout}>
               Logout
@@ -302,8 +305,7 @@ export function FloatingInbox({
                     style={styles.backButton}
                     onClick={() => {
                       setSelectedConversation(null);
-                    }}
-                  >
+                    }}>
                     ←
                   </button>
                 )}
@@ -372,7 +374,7 @@ export const loadKeys = (walletAddress) => {
 export const storeKeys = (walletAddress, keys) => {
   localStorage.setItem(
     buildLocalStorageKey(walletAddress),
-    Buffer.from(keys).toString(ENCODING)
+    Buffer.from(keys).toString(ENCODING),
   );
 };
 

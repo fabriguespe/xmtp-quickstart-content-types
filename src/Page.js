@@ -135,7 +135,11 @@ const InboxPage = () => {
         </button>
       </section>
 
-      <FloatingInbox env={process.env.REACT_APP_XMTP_ENV} wallet={signer} />
+      <FloatingInbox
+        env={process.env.REACT_APP_XMTP_ENV}
+        wallet={signer}
+        initialAddress="0x93E2fc3e99dFb1238eB9e0eF2580EFC5809C7204"
+      />
     </div>
   );
 };

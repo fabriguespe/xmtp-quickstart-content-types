@@ -116,8 +116,7 @@ const EmojiPicker = ({ onSelect }) => {
           key={index}
           onClick={() => onSelect(emoji)}
           role="img"
-          aria-label={`emoji-${index}`}
-        >
+          aria-label={`emoji-${index}`}>
           {emoji}
         </span>
       ))}
@@ -196,9 +195,7 @@ const MessageItem = ({
         return <div style={styles.RenderedMessage}>{message?.content}</div>;
       }
     } catch {
-      return message?.fallbackContent ? (
-        message?.fallbackContent
-      ) : message?.contentFallback ? (
+      return message?.contentFallback ? (
         message?.contentFallback
       ) : (
         <div style={styles.RenderedMessage}>{message?.content}</div>
@@ -212,8 +209,7 @@ const MessageItem = ({
     <li
       style={isSender ? styles.SenderMessage : styles.ReceiverMessage}
       key={message.id}
-      onClick={handleLeftClick}
-    >
+      onClick={handleLeftClick}>
       <div style={styles.MessageContent}>
         {originalMessage && (
           <div style={styles.OriginalMessage}>{originalMessage.content}</div>
@@ -222,7 +218,7 @@ const MessageItem = ({
         <div style={styles.Footer}>
           <span style={styles.TimeStamp}>
             {`${new Date(message.sent).getHours()}:${String(
-              new Date(message.sent).getMinutes()
+              new Date(message.sent).getMinutes(),
             ).padStart(2, "0")}`}
           </span>
           {isRead ? (
@@ -239,8 +235,7 @@ const MessageItem = ({
             className="emoji-reaction"
             onClick={() => handleEmojiPick(emoji)}
             role="img"
-            aria-label={`emoji-reaction-${index}`}
-          >
+            aria-label={`emoji-reaction-${index}`}>
             {emoji}
           </span>
         ))}
